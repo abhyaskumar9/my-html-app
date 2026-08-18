@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tenant & Student Manager Pro</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        :root { --primary: #0288d1; --bg: #f4f6f9; }
+        
+        body { 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; padding: 0; 
+            background: var(--bg); 
+            height: 100vh; display: flex; flex-direction: column; 
+            overflow: hidden; 
+        }
+
+        header { 
+            background: var(--primary); color: white; padding: 14px; 
+            text-align: center; font-size: 18px; font-weight: bold; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .nav-tabs { display: flex; background: #e0e0e0; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #e0e0e0; font-weight: bold; font-size: 14px; cursor: pointer; color: #555; }
+        .tab-btn.active { background: white; color: var(--primary); border-bottom: 3px solid var(--primary); }
+
+        #main-container { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 60px; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .filter-bar { display: flex; gap: 6px; margin-bottom: 12px; }
+        .filter-btn { flex: 1; padding: 8px 4px; border: 1px solid #ccc; background: white; border-radius: 6px; font-size: 12px; font-weight: bold; color: #555; cursor: pointer; text-align: center; }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .card { background: white; padding: 16px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); border-left: 6px solid #ccc; }
+        .card-blue { border-left-color: #0288d1; background: #f0f8ff; }
+        .card-green { border-left-color: #388e3c; background: #f1f8e9; }
+        .card-red { border-left-color: #d32f2f; background: #ffebee; }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; outline: none; font-family: inherit; background: white; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+        
+        .btn-submit { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.15); }
+        .btn-calc { background: #ff9800; margin-top: 8px; padding: 10px; font-size: 14px; border:none; border-radius:6px; color:white; font-weight:bold; width:100%; cursor:pointer; }
+        .btn-parents { background: #25D366; margin-top: 6px; padding: 8px; font-size: 13px; border:none; border-radius:6px; color:white; font-weight:bold; width:100%; cursor:pointer; }
+        .btn-history { background: #00897b; margin-top: 6px; padding: 8px; font-size: 13px; border:none; border-radius:6px; color:white; font-weight:bold; width:100%; cursor:pointer; }
+        .btn-edit { background: #0288d1; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-right: 4px; }
+        .btn-profile { background: #00897b; margin-top: 10px; }
+
+        .btn-backup-hub {
+            background: linear-gradient(135deg, #1e88e5, #7b1fa2);
+            color: white;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            width: 100%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(123, 31, 162, 0.3);
+            margin-bottom: 16px;
+        }
+
+        .btn-link {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            text-decoration: none;
+            border: 1px solid #90caf9;
+            margin-top: 4px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .btn-cloud { background: #4285F4; margin-top: 8px; padding: 10px; font-size: 14px; border:none; border-radius:6px; color:white; font-weight:bold; width:100%; cursor:pointer; }
+        .btn-offline-sync { margin-top: 8px; padding: 12px; font-size: 14px; border:none; border-radius:6px; color:white; font-weight:bold; width:100%; cursor:pointer; }
+
+        .img-preview { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-top: 8px; border: 1px solid #ddd; }
+
+        .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 5% auto; padding: 16px; border-radius: 12px; width: 92%; max-height: 85vh; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #0288d1; color: white; }
+
+        /* Step guide details styling */
+        details summary { cursor: pointer; font-size: 12px; font-weight: bold; color: #d84315; padding: 6px 0; outline: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <span>Rent & Student Manager Pro</span>
+        <span onclick="switchTab('profile')" style="font-size:13px; background:#005b9f; padding:5px 10px; border-radius:15px; cursor:pointer;">⚙️ Profile</span>
+    </header>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" id="tab-add-btn" onclick="switchTab('add')">+ New Entry</button>
+        <button class="tab-btn" id="tab-list-btn" onclick="switchTab('list')">👥 Registered List (<span id="renterCount">0</span>)</button>
+    </div>
+
+    <div id="main-container">
+
+        <!-- TAB 1: ADD FORM -->
+        <div id="tab-add" class="tab-content active">
+            <div class="card" style="border-left-color: var(--primary);">
+                <h3 style="margin-top:0; color:#333; font-size:16px;">New Registration Form</h3>
+                
+                <div class="form-group">
+                    <label>Category / Type Select Karein *</label>
+                    <select id="personType" onchange="toggleFormFields()">
+                        <option value="Student">🎓 Student</option>
+                        <option value="Renter">🏠 Renter / Family</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label id="lblFullName">Student Full Name *</label>
+                    <input type="text" id="name" placeholder="Full Name enter karein">
+                </div>
+                <div class="form-group">
+                    <label id="lblMobile">Student WhatsApp / Mobile No. *</label>
+                    <input type="tel" id="mobile" placeholder="9876543210">
+                </div>
+                
+                <div class="form-group" id="parentMobileGroup">
+                    <label>Parents WhatsApp / Mobile Number *</label>
+                    <input type="tel" id="parentMobile" placeholder="Parents Contact No.">
+                </div>
+                <div class="form-group">
+                    <label id="lblFather">Parents / Father's Name *</label>
+                    <input type="text" id="father" placeholder="Father Name">
+                </div>
+                <div class="form-group" id="addressGroup">
+                    <label>Permanent Home Address *</label>
+                    <textarea id="address" rows="2" placeholder="Village / City Address"></textarea>
+                </div>
+                
+                <div class="form-group" id="studentPhotoGroup">
+                    <label>Upload Student Photo</label>
+                    <input type="file" id="studentImg" accept="image/*" onchange="previewStudentPhoto(event)">
+                    <img id="imgStudentPreview" class="img-preview" style="display:none;">
+                </div>
+
+                <div class="form-group">
+                    <label>Aadhaar Number</label>
+                    <input type="number" id="aadhaarNum">
+                </div>
+                <div class="form-group">
+                    <label>Upload Aadhaar Card Image</label>
+                    <input type="file" id="aadhaarImg" accept="image/*" onchange="previewImage(event)">
+                    <img id="imgPreview" class="img-preview" style="display:none;">
+                </div>
+                <div class="form-group">
+                    <label>Joining / Entry Date *</label>
+                    <input type="date" id="entryDate">
+                </div>
+                <div class="form-group" id="initialReadingGroup" style="display:none;">
+                    <label>Initial Electricity Meter Reading (Start Units)</label>
+                    <input type="number" id="initialReading" value="0">
+                </div>
+                <div class="form-group">
+                    <label id="lblRent">Monthly Student Fee (₹) *</label>
+                    <input type="number" id="rentAmount">
+                </div>
+                <div class="form-group">
+                    <label>Advance Fee Paid (₹)</label>
+                    <input type="number" id="advancePaid" value="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Welcome Message Kise Bhejna Hai?</label>
+                    <select id="sendToTarget"></select>
+                </div>
+
+                <button class="btn-submit" onclick="saveRenter()">💾 Save & Send Welcome Rules</button>
+            </div>
+        </div>
+
+        <!-- TAB 2: REGISTERED LIST WITH SUB-FILTERS -->
+        <div id="tab-list" class="tab-content">
+            <div class="filter-bar">
+                <button class="filter-btn active" id="filter-all" onclick="setListFilter('all')">Sabhi (<span id="cntAll">0</span>)</button>
+                <button class="filter-btn" id="filter-student" onclick="setListFilter('Student')">🎓 Students (<span id="cntStudent">0</span>)</button>
+                <button class="filter-btn" id="filter-renter" onclick="setListFilter('Renter')">🏠 Renters (<span id="cntRenter">0</span>)</button>
+            </div>
+            <div id="renterList"></div>
+        </div>
+
+        <!-- TAB 3: PROFILE -->
+        <div id="tab-profile" class="tab-content">
+            
+            <button class="btn-backup-hub" onclick="openModal('backupModal')">
+                <span>☁️</span> Open Data Backup & Restore Hub
+            </button>
+
+            <div class="card" style="border-left-color: #00897b;">
+                <h3 style="margin-top:0; color:#333; font-size:16px;">⚙️ Owner Profile & Rules Settings</h3>
+                
+                <div class="form-group">
+                    <label>Owner Full Name</label>
+                    <input type="text" id="ownerName" placeholder="Your Name">
+                </div>
+                <div class="form-group">
+                    <label>Owner Email (For Backup)</label>
+                    <input type="email" id="ownerEmail" placeholder="yourname@gmail.com">
+                </div>
+                <div class="form-group">
+                    <label>Owner WhatsApp / Phone Number</label>
+                    <input type="tel" id="ownerPhone" placeholder="Your WhatsApp Number">
+                </div>
+                <div class="form-group">
+                    <label>UPI ID (For Fee/Rent Payment)</label>
+                    <input type="text" id="ownerUpiId" placeholder="username@upi">
+                </div>
+                <div class="form-group">
+                    <label>UPI Mobile Number</label>
+                    <input type="tel" id="ownerUpiNum" placeholder="UPI Mobile Number">
+                </div>
+                
+                <div class="form-group">
+                    <label>🎓 Student Welcome Rules & Fee Notice</label>
+                    <textarea id="studentRules" rows="5" placeholder="Students ke niyam yahan likhein..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>🏠 Renter/Family Rules & Rent Notice</label>
+                    <textarea id="renterRules" rows="5" placeholder="Renters ke niyam yahan likhein..."></textarea>
+                </div>
+                
+                <button class="btn-submit btn-profile" onclick="saveOwnerProfile()">💾 Save Profile Settings</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- POPUP 1: DATA BACKUP & RESTORE MODAL (WITH FULL HELP GUIDE) -->
+    <div id="backupModal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0; font-size:16px; color:#1a73e8;">☁️ Backup & Multi-Device Sync</h3>
+                <span onclick="closeModal('backupModal')" style="font-size:22px; font-weight:bold; cursor:pointer;">&times;</span>
+            </div>
+
+            <!-- Simple Guide Box -->
+            <div style="background:#fff8e1; border-left:4px solid #ff9800; padding:10px; border-radius:6px; margin-bottom:15px;">
+                <h4 style="margin:0 0 4px 0; color:#e65100; font-size:13px;">📖 Naye Mobile Me Data Kaise Le Jayein?</h4>
+                <p style="font-size:11.5px; color:#555; line-height:1.4; margin:0;">
+                    <b>1. Purane Phone Se:</b> "Download Data Backup" dabakar file download karein aur WhatsApp/Mail par share karein.<br>
+                    <b>2. Naye Phone Me:</b> "Restore from Backup File" dabakar wahi file select karein. Sara record restore ho jayega!
+                </p>
+            </div>
+
+            <!-- Offline Action Buttons -->
+            <button class="btn-offline-sync" style="background:#0288d1; width:100%;" onclick="exportDataToFile()">💾 Download Data Backup (.JSON)</button>
+            <button class="btn-offline-sync" style="background:#2e7d32; width:100%;" onclick="document.getElementById('importFile').click()">📂 Restore from Backup File</button>
+            <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importDataFromFile(event)">
+
+            <hr style="margin: 15px 0; border: none; border-top: 1px dashed #ccc;">
+            
+            <label style="font-size:12px; color:#666;">Google Drive Direct Sync (Optional)</label>
+            
+            <!-- Direct Link -->
+            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="btn-link" style="width:100%;">
+                🔗 Create Google Client ID (Click Here)
+            </a>
+
+            <!-- Full Interactive Help Guide for Client ID -->
+            <details style="background:#f9f9f9; padding:8px; border-radius:6px; border:1px solid #eee; margin-bottom:8px;">
+                <summary>❓ Google Client ID Kaise Banayein? (Step-by-Step Guide)</summary>
+                <div style="font-size:11px; color:#444; line-height:1.5; margin-top:6px;">
+                    <b>Step 1: Project Banayein</b><br>
+                    Upar wale link par jayein $\rightarrow$ Top bar me <i>Select Project / New Project</i> par click karke naam 'RentManager' dalein aur Create karein.<br><br>
+                    <b>Step 2: Consent Screen</b><br>
+                    Left menu me <i>OAuth consent screen</i> $\rightarrow$ <i>External</i> chunein $\rightarrow$ App name & Email bharein aur Save karein.<br><br>
+                    <b>Step 3: Client ID Create Karein</b><br>
+                    Left menu me <i>Credentials</i> $\rightarrow$ <i>+ Create Credentials</i> $\rightarrow$ <i>OAuth client ID</i> $\rightarrow$ Application type me <i>Web application</i> chunein aur Create dabayein.<br><br>
+                    <b>Step 4: Paste Karein</b><br>
+                    Jo Client ID (xxxx.apps.googleusercontent.com) aayegi, use copy karke niche box me daalein.
+                </div>
+            </details>
+
+            <div class="form-group" style="margin-top:2px;">
+                <input type="text" id="gDriveClientId" placeholder="Paste Google Client ID here">
+            </div>
+            <button class="btn-cloud" onclick="backupToGoogleDrive()">☁️ Backup to Google Drive</button>
+            <button class="btn-cloud" style="background:#0f9d58;" onclick="restoreFromGoogleDrive()">📥 Restore from Google Drive</button>
+        </div>
+    </div>
+
+    <!-- POPUP 2: HISTORY MODAL -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 id="modalRenterName" style="margin:0; font-size:16px;">Payment History</h3>
+                <span onclick="closeModal('historyModal')" style="font-size:20px; font-weight:bold; cursor:pointer;">&times;</span>
+            </div>
+            <div id="historyTableContainer"></div>
+        </div>
+    </div>
+
+    <!-- POPUP 3: EDIT MODAL -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="margin:0; font-size:16px;">✏️ Edit Details</h3>
+                <span onclick="closeModal('editModal')" style="font-size:20px; font-weight:bold; cursor:pointer;">&times;</span>
+            </div>
+            <input type="hidden" id="editRenterId">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="editName">
+            </div>
+            <div class="form-group">
+                <label>Mobile Number</label>
+                <input type="tel" id="editMobile">
+            </div>
+            <div class="form-group" id="editParentGroup">
+                <label>Parents Mobile Number</label>
+                <input type="tel" id="editParentMobile">
+            </div>
+            <div class="form-group">
+                <label>Parents / Father's Name</label>
+                <input type="text" id="editFather">
+            </div>
+            <div class="form-group">
+                <label>Monthly Rent / Student Fee (₹)</label>
+                <input type="number" id="editRent">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea id="editAddress" rows="2"></textarea>
+            </div>
+            <button class="btn-submit" onclick="saveEditedRenter()">💾 Save Changes</button>
+        </div>
+    </div>
+
+    <script>
+        let renters = JSON.parse(localStorage.getItem('renters_db') || '[]');
+        let ownerProfile = JSON.parse(localStorage.getItem('owner_profile') || '{}');
+        let currentFilter = 'all';
+        let base64Aadhaar = "";
+        let base64StudentImg = "";
+
+        const defaultStudentRules = "Student Rules & Fee Policy:\n1. Student Monthly Fee is due every 30 days from Entry Date.\n2. Keep study room and hostel premises clean.\n3. Hostel gate locks at 9:30 PM.";
+        const defaultRenterRules = "Renter/Family Rules & Policy:\n1. Room rent payment cycle starts from Entry Date.\n2. Electricity Reading taken on 1st of every month.\n3. Keep premises clean.";
+
+        function toggleFormFields() {
+            let pType = document.getElementById('personType').value;
+            let targetSelect = document.getElementById('sendToTarget');
+            
+            if(pType === 'Student') {
+                document.getElementById('lblFullName').innerText = "Student Full Name *";
+                document.getElementById('lblMobile').innerText = "Student WhatsApp / Mobile No. *";
+                document.getElementById('parentMobileGroup').style.display = "block";
+                document.getElementById('lblFather').innerText = "Parents / Father's Name *";
+                document.getElementById('addressGroup').style.display = "block";
+                document.getElementById('studentPhotoGroup').style.display = "block";
+                document.getElementById('initialReadingGroup').style.display = "none";
+                document.getElementById('lblRent').innerText = "Monthly Student Fee (₹) *";
+                
+                targetSelect.innerHTML = `
+                    <option value="student">1. Sirf Student WhatsApp Par</option>
+                    <option value="parents">2. Sirf Parents WhatsApp Par</option>
+                    <option value="both">3. Student Aur Parents Dono Par</option>
+                `;
+            } else {
+                document.getElementById('lblFullName').innerText = "Renter/Family Head Name *";
+                document.getElementById('lblMobile').innerText = "Renter WhatsApp / Mobile No. *";
+                document.getElementById('parentMobileGroup').style.display = "none";
+                document.getElementById('lblFather').innerText = "Father's Name";
+                document.getElementById('addressGroup').style.display = "none";
+                document.getElementById('studentPhotoGroup').style.display = "none";
+                document.getElementById('initialReadingGroup').style.display = "block";
+                document.getElementById('lblRent').innerText = "Monthly Room Rent (₹) *";
+
+                targetSelect.innerHTML = `
+                    <option value="student">Sirf Renter WhatsApp Par</option>
+                `;
+            }
+        }
+
+        function loadOwnerProfile() {
+            if(ownerProfile.name) document.getElementById('ownerName').value = ownerProfile.name;
+            if(ownerProfile.email) document.getElementById('ownerEmail').value = ownerProfile.email;
+            if(ownerProfile.phone) document.getElementById('ownerPhone').value = ownerProfile.phone;
+            if(ownerProfile.upiId) document.getElementById('ownerUpiId').value = ownerProfile.upiId;
+            if(ownerProfile.upiNum) document.getElementById('ownerUpiNum').value = ownerProfile.upiNum;
+            if(ownerProfile.gDriveClientId) document.getElementById('gDriveClientId').value = ownerProfile.gDriveClientId;
+            document.getElementById('studentRules').value = ownerProfile.studentRules || defaultStudentRules;
+            document.getElementById('renterRules').value = ownerProfile.renterRules || defaultRenterRules;
+        }
+
+        function saveOwnerProfile() {
+            ownerProfile = {
+                name: document.getElementById('ownerName').value,
+                email: document.getElementById('ownerEmail').value,
+                phone: document.getElementById('ownerPhone').value,
+                upiId: document.getElementById('ownerUpiId').value,
+                upiNum: document.getElementById('ownerUpiNum').value,
+                gDriveClientId: document.getElementById('gDriveClientId').value,
+                studentRules: document.getElementById('studentRules').value,
+                renterRules: document.getElementById('renterRules').value
+            };
+            localStorage.setItem('owner_profile', JSON.stringify(ownerProfile));
+            alert("Profile Settings Saved Successfully!");
+            switchTab('list');
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tab).classList.add('active');
+            if(document.getElementById('tab-' + tab + '-btn')) {
+                document.getElementById('tab-' + tab + '-btn').classList.add('active');
+            }
+            if(tab === 'list') renderRenters();
+        }
+
+        function setListFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            if(filter === 'all') document.getElementById('filter-all').classList.add('active');
+            if(filter === 'Student') document.getElementById('filter-student').classList.add('active');
+            if(filter === 'Renter') document.getElementById('filter-renter').classList.add('active');
+            renderRenters();
+        }
+
+        function previewImage(event) {
+            let reader = new FileReader();
+            reader.onload = function() {
+                base64Aadhaar = reader.result;
+                document.getElementById('imgPreview').src = base64Aadhaar;
+                document.getElementById('imgPreview').style.display = 'block';
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+
+        function previewStudentPhoto(event) {
+            let reader = new FileReader();
+            reader.onload = function() {
+                base64StudentImg = reader.result;
+                document.getElementById('imgStudentPreview').src = base64StudentImg;
+                document.getElementById('imgStudentPreview').style.display = 'block';
+            };
+            reader.readAsDataURL(event.target.files[0]);
+        }
+
+        function saveRenter() {
+            let pType = document.getElementById('personType').value;
+            let name = document.getElementById('name').value;
+            let mobile = document.getElementById('mobile').value;
+            let parentMobile = document.getElementById('parentMobile').value || '';
+            let entryDate = document.getElementById('entryDate').value;
+            let rent = parseFloat(document.getElementById('rentAmount').value || 0);
+            let initReading = parseFloat(document.getElementById('initialReading').value || 0);
+
+            if(!name || !mobile || !entryDate) return alert("Kripya Name, Mobile aur Entry Date bharein!");
+
+            let eDateObj = new Date(entryDate);
+            let dueDateObj = new Date(eDateObj);
+            dueDateObj.setDate(dueDateObj.getDate() + 30);
+            let nextDueDateStr = dueDateObj.toISOString().split('T')[0];
+
+            let renter = {
+                id: Date.now(),
+                pType: pType,
+                name: name,
+                mobile: mobile,
+                parentMobile: parentMobile,
+                father: document.getElementById('father').value,
+                address: document.getElementById('address').value || '',
+                aadhaarNum: document.getElementById('aadhaarNum').value,
+                aadhaarImg: base64Aadhaar,
+                studentImg: base64StudentImg,
+                entryDate: entryDate,
+                nextDueDate: nextDueDateStr,
+                rent: rent,
+                advance: parseFloat(document.getElementById('advancePaid').value || 0),
+                prevReading: initReading,
+                history: []
+            };
+
+            renters.push(renter);
+            localStorage.setItem('renters_db', JSON.stringify(renters));
+            
+            let customRules = (pType === 'Student') ? (ownerProfile.studentRules || defaultStudentRules) : (ownerProfile.renterRules || defaultRenterRules);
+            let oName = ownerProfile.name || "Owner";
+            let oPhone = ownerProfile.phone || "";
+
+            let rulesMsg = `Namaste ${name} ji,\n\n${customRules}\n\nJoining Date: ${entryDate}\nNext Due Date: ${nextDueDateStr}\n\nAapka Dhanyawad!\nOwner: ${oName}\nContact: ${oPhone}`;
+            
+            let target = document.getElementById('sendToTarget').value;
+            let sendPhone = (target === 'parents' && parentMobile) ? parentMobile : mobile;
+
+            window.location.href = `https://wa.me/91${sendPhone}?text=${encodeURIComponent(rulesMsg)}`;
+            
+            document.getElementById('name').value = '';
+            document.getElementById('mobile').value = '';
+            document.getElementById('parentMobile').value = '';
+            document.getElementById('imgPreview').style.display = 'none';
+            document.getElementById('imgStudentPreview').style.display = 'none';
+            base64Aadhaar = "";
+            base64StudentImg = "";
+            
+            switchTab('list');
+        }
+
+        function renderRenters() {
+            let container = document.getElementById('renterList');
+            
+            let sCount = renters.filter(r => r.pType === 'Student').length;
+            let rCount = renters.filter(r => r.pType === 'Renter').length;
+            
+            document.getElementById('renterCount').innerText = renters.length;
+            document.getElementById('cntAll').innerText = renters.length;
+            document.getElementById('cntStudent').innerText = sCount;
+            document.getElementById('cntRenter').innerText = rCount;
+
+            container.innerHTML = '';
+
+            let filteredList = renters;
+            if(currentFilter !== 'all') {
+                filteredList = renters.filter(r => r.pType === currentFilter);
+            }
+
+            if(filteredList.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:#888; padding:30px;">Koi Record Nahi Hai.</div>`;
+                return;
+            }
+
+            const colorClasses = ['card-blue', 'card-green', 'card-red'];
+
+            filteredList.forEach((r, index) => {
+                let color = colorClasses[index % 3];
+                let isStudent = (r.pType === 'Student');
+                let typeBadge = `<span class="status-badge badge-type">${isStudent ? '🎓 Student' : '🏠 Renter'}</span>`;
+                let meterInfo = isStudent ? '' : `<div style="font-size:12px; color:#555;">Current Meter Reading: <b>${r.prevReading} units</b></div>`;
+
+                container.innerHTML += `
+                    <div class="card ${color}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-size:16px; font-weight:bold;">${r.name}</div>
+                            <div>
+                                <button class="btn-edit" onclick="openEditModal(${r.id})">✏️ Edit</button>
+                                <button onclick="deleteRenter(${r.id})" style="width:auto; padding:4px 8px; background:#d32f2f; color:white; border:none; border-radius:4px; font-size:11px; cursor:pointer;">Delete</button>
+                            </div>
+                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:2px;">Phone: ${r.mobile} ${r.parentMobile ? '<br>Parents Phone: ' + r.parentMobile : ''}</div>
+                        ${r.address ? `<div style="font-size:12px; color:#666;">Addr: ${r.address}</div>` : ''}
+                        <div style="font-size:12px; color:#777;">Entry: ${r.entryDate} | Due Date: <b>${r.nextDueDate}</b></div>
+                        <div style="font-size:12px; color:#777;">Fee/Rent: ₹${r.rent} | Adv: ₹${r.advance}</div>
+                        ${meterInfo}
+                        
+                        <div style="margin-top:8px;">${typeBadge}</div>
+
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            ${r.studentImg ? `<div style="flex:1;"><small>Photo:</small><img src="${r.studentImg}" class="img-preview"></div>` : ''}
+                            ${r.aadhaarImg ? `<div style="flex:1;"><small>Aadhaar:</small><img src="${r.aadhaarImg}" class="img-preview"></div>` : ''}
+                        </div>
+
+                        <button class="btn-calc" onclick="generateBillPrompt(${r.id}, 'student')">⚡ Generate & Send Bill (${isStudent ? 'Student' : 'Renter'})</button>
+                        ${r.parentMobile ? `<button class="btn-parents" onclick="generateBillPrompt(${r.id}, 'parents')">📱 Send Bill to Parents (${r.parentMobile})</button>` : ''}
+                        <button class="btn-history" onclick="viewHistory(${r.id})">📜 View Payment & Elec History (${r.history ? r.history.length : 0})</button>
+                    </div>
+                `;
+            });
+        }
+
+        function openEditModal(id) {
+            let renter = renters.find(x => x.id === id);
+            document.getElementById('editRenterId').value = renter.id;
+            document.getElementById('editName').value = renter.name;
+            document.getElementById('editMobile').value = renter.mobile;
+            document.getElementById('editParentMobile').value = renter.parentMobile || '';
+            document.getElementById('editFather').value = renter.father || '';
+            document.getElementById('editRent').value = renter.rent;
+            document.getElementById('editAddress').value = renter.address || '';
+
+            if(renter.pType === 'Student') {
+                document.getElementById('editParentGroup').style.display = 'block';
+            } else {
+                document.getElementById('editParentGroup').style.display = 'none';
+            }
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function saveEditedRenter() {
+            let id = parseInt(document.getElementById('editRenterId').value);
+            let renter = renters.find(x => x.id === id);
+
+            renter.name = document.getElementById('editName').value;
+            renter.mobile = document.getElementById('editMobile').value;
+            renter.parentMobile = document.getElementById('editParentMobile').value;
+            renter.father = document.getElementById('editFather').value;
+            renter.rent = parseFloat(document.getElementById('editRent').value || 0);
+            renter.address = document.getElementById('editAddress').value;
+
+            localStorage.setItem('renters_db', JSON.stringify(renters));
+            alert("Details Updated Successfully!");
+            closeModal('editModal');
+            renderRenters();
+        }
+
+        function deleteRenter(id) {
+            if(confirm("Kya aap is Record ko delete karna chahte hain?")) {
+                renters = renters.filter(x => x.id !== id);
+                localStorage.setItem('renters_db', JSON.stringify(renters));
+                renderRenters();
+            }
+        }
+
+        function generateBillPrompt(id, sendTarget) {
+            let renter = renters.find(x => x.id === id);
+            let isStudent = (renter.pType === 'Student');
+
+            let totalPayable = renter.rent - renter.advance;
+            let msg = "";
+            let oName = ownerProfile.name || "Owner";
+            let oUpiId = ownerProfile.upiId || "Not Set";
+            let oUpiNum = ownerProfile.upiNum || "Not Set";
+
+            let recipientPhone = (sendTarget === 'parents' && renter.parentMobile) ? renter.parentMobile : renter.mobile;
+            let dateStr = new Date().toISOString().split('T')[0];
+
+            if(isStudent) {
+                msg = `*MONTHLY STUDENT FEE NOTICE*\n--------------------\nStudent Name: ${renter.name}\nParents Name: ${renter.father || 'N/A'}\nEntry Date Cycle: ${renter.entryDate}\nFee Due Date: ${renter.nextDueDate}\n\nMonthly Student Fee: ₹${renter.rent}\nAdvance Adjusted: -₹${renter.advance}\n--------------------\n*TOTAL PAYABLE FEE: ₹${totalPayable}*\n--------------------\n*Pay On:*\nName: ${oName}\nUPI ID: ${oUpiId}\nUPI Mobile: ${oUpiNum}\n\nAapka Dhanyawad!`;
+                
+                if(!renter.history) renter.history = [];
+                renter.history.push({
+                    date: dateStr,
+                    startUnits: '-',
+                    endUnits: '-',
+                    unitsUsed: 0,
+                    elecBill: 0,
+                    rentAmount: renter.rent,
+                    totalPayable: totalPayable,
+                    status: 'Pending'
+                });
+            } else {
+                let latestReading = prompt("Enter Current Electricity Meter Reading:", renter.prevReading);
+                if(!latestReading) return;
+
+                let rate = prompt("Enter Unit Rate (₹):", "8");
+                let endUnits = parseFloat(latestReading);
+                let startUnits = renter.prevReading;
+                let unitsUsed = endUnits - startUnits;
+                if(unitsUsed < 0) unitsUsed = 0;
+
+                let elecBill = unitsUsed * parseFloat(rate);
+                totalPayable = (elecBill + renter.rent) - renter.advance;
+
+                msg = `*MONTHLY RENT & ELEC BILL*\n--------------------\nName: ${renter.name}\nMeter Reading: ${startUnits} to ${endUnits}\nElectricity: ${unitsUsed} units x ₹${rate} = ₹${elecBill}\nRoom Rent: ₹${renter.rent}\nAdvance Adjusted: -₹${renter.advance}\n--------------------\n*TOTAL PAYABLE: ₹${totalPayable}*\n--------------------\n*Pay On:*\nName: ${oName}\nUPI ID: ${oUpiId}\nUPI Mobile: ${oUpiNum}\n\nAapka Dhanyawad!`;
+
+                if(!renter.history) renter.history = [];
+                renter.history.push({
+                    date: dateStr,
+                    startUnits: startUnits,
+                    endUnits: endUnits,
+                    unitsUsed: unitsUsed,
+                    elecBill: elecBill,
+                    rentAmount: renter.rent,
+                    totalPayable: totalPayable,
+                    status: 'Pending'
+                });
+
+                renter.prevReading = endUnits;
+            }
+
+            localStorage.setItem('renters_db', JSON.stringify(renters));
+            window.location.href = `https://wa.me/91${recipientPhone}?text=${encodeURIComponent(msg)}`;
+            renderRenters();
+        }
+
+        function viewHistory(id) {
+            let renter = renters.find(x => x.id === id);
+            document.getElementById('modalRenterName').innerText = `${renter.name} (${renter.pType}) - Monthly History`;
+            
+            let container = document.getElementById('historyTableContainer');
+            if(!renter.history || renter.history.length === 0) {
+                container.innerHTML = `<p style="text-align:center; color:#777; margin-top:20px;">Abhi tak koi bill history record nahi hai.</p>`;
+            } else {
+                let rows = '';
+                renter.history.forEach((h, idx) => {
+                    rows += `
+                        <tr>
+                            <td>${h.date}</td>
+                            <td>${h.startUnits} - ${h.endUnits} (${h.unitsUsed} units)</td>
+                            <td>₹${h.elecBill}</td>
+                            <td>₹${h.rentAmount}</td>
+                            <td><b>₹${h.totalPayable}</b></td>
+                            <td>
+                                <button onclick="togglePaidStatus(${renter.id}, ${idx})" style="padding:4px 8px; border:none; border-radius:4px; font-size:10px; cursor:pointer; background:${h.status==='Paid'?'#4caf50':'#f44336'}; color:white;">
+                                    ${h.status || 'Pending'}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Meter (Units)</th>
+                                <th>Elec (₹)</th>
+                                <th>Rent (₹)</th>
+                                <th>Total (₹)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                `;
+            }
+
+            document.getElementById('historyModal').style.display = 'block';
+        }
+
+        function togglePaidStatus(renterId, historyIdx) {
+            let renter = renters.find(x => x.id === renterId);
+            if(renter && renter.history && renter.history[historyIdx]) {
+                renter.history[historyIdx].status = (renter.history[historyIdx].status === 'Paid') ? 'Pending' : 'Paid';
+                localStorage.setItem('renters_db', JSON.stringify(renters));
+                viewHistory(renterId);
+            }
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function exportDataToFile() {
+            let fullBackup = {
+                renters: renters,
+                profile: ownerProfile,
+                backupDate: new Date().toISOString()
+            };
+            let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullBackup, null, 2));
+            let downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `rent_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importDataFromFile(event) {
+            let file = event.target.files[0];
+            if (!file) return;
+
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let importedData = JSON.parse(e.target.result);
+                    if (importedData.renters) {
+                        renters = importedData.renters;
+                        localStorage.setItem('renters_db', JSON.stringify(renters));
+                    }
+                    if (importedData.profile) {
+                        ownerProfile = importedData.profile;
+                        localStorage.setItem('owner_profile', JSON.stringify(ownerProfile));
+                        loadOwnerProfile();
+                    }
+                    alert("Data Successfully Restored from File!");
+                    closeModal('backupModal');
+                    renderRenters();
+                } catch(err) {
+                    alert("Invalid Backup File!");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function backupToGoogleDrive() {
+            let clientId = document.getElementById('gDriveClientId').value || ownerProfile.gDriveClientId;
+            if(!clientId) {
+                alert("Agar direct Drive me backup karna hai to Client ID dalein, warna upar wala 'Download Data Backup' button use karein.");
+                return;
+            }
+            const tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: clientId,
+                scope: 'https://www.googleapis.com/auth/drive.appdata',
+                callback: (response) => {
+                    if (response.access_token) uploadAppDataToDrive(response.access_token);
+                }
+            });
+            tokenClient.requestAccessToken();
+        }
+
+        function uploadAppDataToDrive(token) {
+            let fullBackup = {
+                renters: renters,
+                profile: ownerProfile,
+                updatedAt: new Date().toISOString()
+            };
+            const fileContent = JSON.stringify(fullBackup);
+            const metadata = {
+                name: 'rent_manager_data.json',
+                mimeType: 'application/json',
+                parents: ['appDataFolder']
+            };
+
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([fileContent], { type: 'application/json' }));
+
+            fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST',
+                headers: new Headers({ 'Authorization': 'Bearer ' + token }),
+                body: form
+            })
+            .then(res => res.json())
+            .then(data => alert("Google Drive Cloud Backup Complete!"))
+            .catch(err => alert("Upload Failed: " + err.message));
+        }
+
+        function restoreFromGoogleDrive() {
+            let clientId = document.getElementById('gDriveClientId').value || ownerProfile.gDriveClientId;
+            if(!clientId) {
+                alert("Kripya pehle Google Client ID daalein.");
+                return;
+            }
+            const tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: clientId,
+                scope: 'https://www.googleapis.com/auth/drive.appdata',
+                callback: (response) => {
+                    if (response.access_token) fetchDriveBackup(response.access_token);
+                }
+            });
+            tokenClient.requestAccessToken();
+        }
+
+        function fetchDriveBackup(token) {
+            fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)", {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(res => res.json())
+            .then(data => {
+                let file = data.files.find(f => f.name === 'rent_manager_data.json');
+                if(file) {
+                    return fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                } else {
+                    throw new Error("No backup found in Google Drive");
+                }
+            })
+            .then(res => res.json())
+            .then(restoredData => {
+                if(restoredData.renters) {
+                    renters = restoredData.renters;
+                    localStorage.setItem('renters_db', JSON.stringify(renters));
+                }
+                if(restoredData.profile) {
+                    ownerProfile = restoredData.profile;
+                    localStorage.setItem('owner_profile', JSON.stringify(ownerProfile));
+                    loadOwnerProfile();
+                }
+                alert("Data Successfully Restored from Google Drive!");
+                closeModal('backupModal');
+                renderRenters();
+            })
+            .catch(err => alert("Restore Error: " + err.message));
+        }
+
+        toggleFormFields();
+        loadOwnerProfile();
+        renderRenters();
+    </script>
+</body>
+</html>
