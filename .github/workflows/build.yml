@@ -43,15 +43,16 @@ jobs:
           cd android
           ./gradlew assembleDebug
 
-      - name: Sign APK with Debug Keystore
+      - name: Generate Keystore and Sign APK
         run: |
-          BUILD_TOOLS=$ANDROID_HOME/build-tools/34.0.0
+          keytool -genkey -v -keystore release.keystore -alias mykey -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=MyHTMLApp, OU=App, O=Dev, L=City, S=State, C=IN"
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
           APK_PATH=android/app/build/outputs/apk/debug/app-debug.apk
           $BUILD_TOOLS/zipalign -v -p 4 $APK_PATH aligned.apk
-          $BUILD_TOOLS/apksigner sign --ks ~/.android/debug.keystore --ks-pass pass:android --key-pass pass:android --out my-app-signed.apk aligned.apk
+          $BUILD_TOOLS/apksigner sign --ks release.keystore --ks-pass pass:123456 --key-pass pass:123456 --out my-html-app.apk aligned.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: my-app-signed
-          path: my-app-signed.apk
+          name: HTML-App-APK
+          path: my-html-app.apk
