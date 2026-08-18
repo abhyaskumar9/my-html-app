@@ -27,6 +27,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Prepare Web Directory
+        run: |
+          mkdir -p www
+          cp -r index.html style.css script.js www/ 2>/dev/null || cp index.html www/
+
       - name: Install Dependencies
         run: |
           npm install
