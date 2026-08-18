@@ -1,4 +1,4 @@
-name: Build Native WebView APK
+name: Build Android 13 APK
 
 on:
   push:
@@ -13,35 +13,41 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java JDK 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup Node
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Build APK via Capacitor Stable
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create Web Folder & Build App
         run: |
-          npm init -y
-          npm install @capacitor/core@5.7.5 @capacitor/cli@5.7.5 @capacitor/android@5.7.5
           mkdir -p www
-          cp -r index.html www/
-          cp -r style.css script.js www/ 2>/dev/null || true
-          npx cap init "MyHTMLApp" "com.abhyas.myhtmlapp" --web-dir www
+          cp index.html www/ 2>/dev/null || true
+          cp style.css script.js www/ 2>/dev/null || true
+          npm install
           npx cap add android
+          npx cap sync android
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
-      - name: Upload APK
+      - name: Sign APK with V2/V3 Signature (Android 13 Support)
+        run: |
+          keytool -genkey -v -keystore my-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-alias -storepass 123456 -keypass 123456 -dname "CN=Abhyas, OU=Dev, O=App, L=City, S=State, C=IN"
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
+          $BUILD_TOOLS/zipalign -v -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk
+          $BUILD_TOOLS/apksigner sign --ks my-release-key.jks --ks-pass pass:123456 --key-pass pass:123456 --ks-key-alias my-alias --v1-signing-enabled true --v2-signing-enabled true --out My-Final-App.apk aligned.apk
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: App-Ready-To-Install
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Android13-Ready-APK
+          path: My-Final-App.apk
