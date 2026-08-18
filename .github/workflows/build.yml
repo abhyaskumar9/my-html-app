@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Universal APK
 
 on:
   push:
@@ -13,46 +13,34 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Prepare Web Directory
+      - name: Build Webview Android App
         run: |
-          mkdir -p www
-          cp -r index.html style.css script.js www/ 2>/dev/null || cp index.html www/
+          npm install -g cordova
+          cordova create myapp com.abhyas.myhtmlapp "My HTML App"
+          cd myapp
+          rm -rf www/*
+          cp -r ../index.html www/
+          cp -r ../style.css www/ 2>/dev/null || true
+          cp -r ../script.js www/ 2>/dev/null || true
+          cordova platform add android@12.0.1
+          cordova build android --debug
 
-      - name: Install Dependencies
-        run: |
-          npm install
-          npx cap add android
-          npx cap sync android
-
-      - name: Build APK with Gradle
-        run: |
-          cd android
-          ./gradlew assembleDebug
-
-      - name: Generate Keystore and Sign APK
-        run: |
-          keytool -genkey -v -keystore release.keystore -alias mykey -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=MyHTMLApp, OU=App, O=Dev, L=City, S=State, C=IN"
-          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | tail -n 1)
-          APK_PATH=android/app/build/outputs/apk/debug/app-debug.apk
-          $BUILD_TOOLS/zipalign -v -p 4 $APK_PATH aligned.apk
-          $BUILD_TOOLS/apksigner sign --ks release.keystore --ks-pass pass:123456 --key-pass pass:123456 --out my-html-app.apk aligned.apk
-
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: HTML-App-APK
-          path: my-html-app.apk
+          name: Universal-App-APK
+          path: myapp/platforms/android/app/build/outputs/apk/debug/app-debug.apk
